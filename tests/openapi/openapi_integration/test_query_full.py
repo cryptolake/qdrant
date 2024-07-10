@@ -1118,3 +1118,42 @@ def test_discover_group():
     assert len(groups[1]["hits"]) == 1
     assert groups[1]["hits"][0]["id"] == 2
     assert groups[1]["hits"][0]["payload"]["city"] == ["Berlin", "London"]
+
+
+def test_random_rescore_with_offset():
+    response = request_with_validation(
+        api="/collections/{collection_name}/points/query",
+        method="POST",
+        path_params={"collection_name": collection_name},
+        body={
+            "prefetch": { "limit": 1 },
+            "query": {"sample": "random"},
+        },
+    )
+    assert response.ok, response.json()
+    random_result = response.json()["result"]["points"]
+    assert len(random_result) == 1
+    assert random_result[0]["id"] == 1
+    
+    # assert offset is propagated to prefetch
+    seen = set()
+    for _ in range(20):
+        response = request_with_validation(
+            api="/collections/{collection_name}/points/query",
+            method="POST",
+            path_params={"collection_name": collection_name},
+            body={
+                "prefetch": { "limit": 1 },
+                "query": {"sample": "random"},
+                "offset": 1,
+            },
+        )
+        assert response.ok, response.json()
+        random_result = response.json()["result"]["points"]
+        assert len(random_result) == 1
+    
+        seen.add(random_result[0]["id"])
+    
+    # Although prefetch limit is 1, offset should be propagated, so randomness is applied to points 1 and 2.
+    # By this point we should've seen both points.
+    assert seen == {1, 2}

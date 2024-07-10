@@ -100,7 +100,7 @@ impl GroupsAggregator {
                     let ordering = match self.order {
                         Some(Order::LargeBetter) => point.cmp(other_score),
                         Some(Order::SmallBetter) => (*other_score).cmp(&point),
-                        None => Ordering::Equal // No order can mean random sampling.
+                        None => Ordering::Equal, // No order can mean random sampling.
                     };
                     if ordering == Ordering::Greater {
                         *other_score = point.clone();
@@ -128,11 +128,11 @@ impl GroupsAggregator {
     /// Return `max_groups` number of keys of the groups with the best score
     fn best_group_keys(&self) -> Vec<GroupId> {
         let mut pairs: Vec<_> = self.group_best_scores.iter().collect();
-        
+
         pairs.sort_unstable_by(|(_, score1), (_, score2)| match self.order {
             Some(Order::LargeBetter) => score2.cmp(score1),
             Some(Order::SmallBetter) => score1.cmp(score2),
-            None => Ordering::Equal
+            None => Ordering::Equal,
         });
 
         pairs
@@ -183,7 +183,7 @@ impl GroupsAggregator {
                 Some(Order::SmallBetter) => {
                     peek_top_smallest_iterable(scored_points_iter, self.max_group_size)
                 }
-                None => scored_points_iter.take(self.max_group_size).collect()
+                None => scored_points_iter.take(self.max_group_size).collect(),
             };
             groups.push(Group {
                 hits,

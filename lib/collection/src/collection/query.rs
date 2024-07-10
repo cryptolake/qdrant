@@ -140,15 +140,14 @@ impl Collection {
         query: Option<&ScoringQuery>,
         limit: usize,
         mut offset: usize,
-        score_threshold: Option<ScoreType>
+        score_threshold: Option<ScoreType>,
     ) -> CollectionResult<Vec<ScoredPoint>> {
         let result = match query {
             Some(ScoringQuery::Fusion(fusion)) => {
                 // If the root query is a Fusion, the returned results correspond to each the prefetches.
                 let mut fused = match fusion {
                     Fusion::Rrf => rrf_scoring(intermediates),
-                    Fusion::Dbsf => score_fusion(intermediates, ScoreFusion::dbsf())
-                
+                    Fusion::Dbsf => score_fusion(intermediates, ScoreFusion::dbsf()),
                 };
                 if let Some(score_threshold) = score_threshold {
                     fused = fused
@@ -157,7 +156,7 @@ impl Collection {
                         .collect();
                 }
                 fused
-            },
+            }
             Some(ScoringQuery::Sample(sample)) => match sample {
                 Sample::Random => {
                     // Random sampling is non-deterministic, we ignore offset params.
