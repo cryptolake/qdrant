@@ -14,7 +14,7 @@ use segment::types::{
 };
 use segment::vector_storage::query::{ContextPair, ContextQuery, DiscoveryQuery, RecoQuery};
 
-use super::shard_query::{Fusion, ScoringQuery, ShardPrefetch, ShardQueryRequest};
+use super::shard_query::{Fusion, Sample, ScoringQuery, ShardPrefetch, ShardQueryRequest};
 use crate::common::fetch_vectors::ReferencedVectors;
 use crate::lookup::WithLookup;
 use crate::operations::query_enum::QueryEnum;
@@ -85,6 +85,9 @@ pub enum Query {
 
     /// Order by a payload field
     OrderBy(OrderBy),
+
+    /// Sample points
+    Sample(Sample),
 }
 
 impl Query {
@@ -106,6 +109,7 @@ impl Query {
             }
             Query::Fusion(fusion) => ScoringQuery::Fusion(fusion),
             Query::OrderBy(order_by) => ScoringQuery::OrderBy(order_by),
+            Query::Sample(sample) => ScoringQuery::Sample(sample),
         };
 
         Ok(scoring_query)
@@ -464,6 +468,12 @@ impl CollectionQueryRequest {
             self.score_threshold,
         )?;
 
+        let mut offset = self.offset;
+        if let Some(Query::Sample(Sample::Random)) = &self.query {
+            // Don't fail if offset is used with random sampling, just ignore it.
+            offset = 0;
+        }
+
         let query_lookup_collection = self.get_lookup_collection().cloned();
         let query_lookup_vector_name = self.get_lookup_vector_name();
         let using = self.using.clone();
@@ -498,7 +508,7 @@ impl CollectionQueryRequest {
             filter,
             score_threshold: self.score_threshold,
             limit: self.limit,
-            offset: self.offset,
+            offset,
             params: self.params,
             with_vector: self.with_vector,
             with_payload: self.with_payload,
@@ -663,6 +673,7 @@ mod from_rest {
                 rest::Query::Context(context) => Query::Vector(From::from(context.context)),
                 rest::Query::OrderBy(order_by) => Query::OrderBy(OrderBy::from(order_by.order_by)),
                 rest::Query::Fusion(fusion) => Query::Fusion(Fusion::from(fusion.fusion)),
+                rest::Query::Sample(sample) => Query::Sample(Sample::from(sample.sample)),
             }
         }
     }
@@ -746,6 +757,14 @@ mod from_rest {
             match value {
                 rest::Fusion::Rrf => Fusion::Rrf,
                 rest::Fusion::Dbsf => Fusion::Dbsf,
+            }
+        }
+    }
+
+    impl From<rest::Sample> for Sample {
+        fn from(value: rest::Sample) -> Self {
+            match value {
+                rest::Sample::Random => Sample::Random,
             }
         }
     }
@@ -916,6 +935,7 @@ pub mod from_grpc {
                 Variant::Context(context) => Query::Vector(TryFrom::try_from(context)?),
                 Variant::OrderBy(order_by) => Query::OrderBy(OrderBy::try_from(order_by)?),
                 Variant::Fusion(fusion) => Query::Fusion(Fusion::try_from(fusion)?),
+                Variant::Sample(sample) => Query::Sample(Sample::try_from(sample)?),
             };
 
             Ok(query)

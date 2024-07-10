@@ -349,6 +349,10 @@ impl IdTracker for SimpleIdTracker {
     fn iter_random(&self) -> Box<dyn Iterator<Item = (PointIdType, PointOffsetType)> + '_> {
         let rng = rand::thread_rng();
         let available = self.internal_to_external.len();
+        if available == 0 {
+            return Box::new(std::iter::empty());
+        }
+
         let uniform = rand::distributions::Uniform::new(0, available);
         let iter = Distribution::sample_iter(uniform, rng)
             // TODO: this is not efficient if `available` is large and we iterate over most of them,
