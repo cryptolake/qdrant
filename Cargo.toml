@@ -122,6 +122,7 @@ rstack-self = { version = "0.3.0", optional = true }
 tikv-jemallocator = "0.6"
 
 [workspace.dependencies]
+base64 = "0.22.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 fnv = "1.0"
 futures = "0.3.30"
